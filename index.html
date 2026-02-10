@@ -94,12 +94,12 @@
     .controls {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: repeat(2, 75px);
+      grid-template-rows: repeat(3, 60px);
       gap: 15px;
       padding: 15px;
       width: 100%;
       box-sizing: border-box;
-      margin-bottom: 5px;
+      margin-bottom: 10px;
     }
 
     .btn {
@@ -132,6 +132,7 @@
       letter-spacing: 2px;
       border-color: var(--accent);
       color: var(--accent);
+      margin-top: 10px;
     }
 
     .btn-stealth:active {
@@ -248,12 +249,14 @@
     </div>
 
     <div class="controls" id="mob-ctrl">
+      <div></div>
+      <div class="btn" id="btn-up">▲</div>
+      <div></div>
+
       <div class="btn" id="btn-left">◀</div>
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div class="btn" id="btn-up" style="height: 70px;">▲</div>
-        <div class="btn" id="btn-down" style="height: 70px;">▼</div>
-      </div>
+      <div class="btn" id="btn-down">▼</div>
       <div class="btn" id="btn-right">▶</div>
+
       <div class="btn btn-stealth" id="btn-stealth">ACTIVATE STEALTH</div>
     </div>
   </div>
