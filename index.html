@@ -11,8 +11,11 @@
   <style>
     :root {
       --primary: #00ff9c;
+      --primary-glow: rgba(0, 255, 156, 0.4);
       --accent: #ff0040;
+      --accent-glow: rgba(255, 0, 64, 0.4);
       --bg: #05070c;
+      --panel: rgba(10, 15, 25, 0.8);
     }
 
     html,
@@ -24,105 +27,238 @@
       font-family: 'JetBrains Mono', monospace;
       overflow: hidden;
       touch-action: none;
+      height: 100%;
     }
 
     h1 {
       color: var(--accent);
       text-align: center;
       margin: 10px 0;
-      font-size: 1.5rem;
-      text-shadow: 0 0 10px var(--accent);
+      font-size: 1.2rem;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      text-shadow: 0 0 15px var(--accent);
     }
 
     #wrap {
       width: 100%;
-      height: calc(100vh - 50px);
+      height: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
       position: relative;
+      background: radial-gradient(circle at center, #101525 0%, #05070c 100%);
+    }
+
+    .game-container {
+      position: relative;
+      width: 95%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     canvas {
       display: block;
-      max-width: 95%;
-      max-height: 70vh;
+      width: 100%;
+      height: auto;
+      max-height: 60vh;
       background: #000;
-      box-shadow: 0 0 20px var(--primary);
-      border: 1px solid #003344;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), 0 0 15px var(--primary-glow);
+      border: 1px solid rgba(0, 255, 156, 0.3);
+      border-radius: 4px;
+    }
+
+    .ui-panel {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      background: var(--panel);
+      border: 1px solid rgba(0, 255, 156, 0.2);
+      margin-top: 10px;
+      border-radius: 8px;
+      box-sizing: border-box;
+      backdrop-filter: blur(10px);
+    }
+
+    .stat {
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-val {
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 10px var(--primary-glow);
     }
 
     .controls {
-      display: none;
-      grid-template-columns: repeat(3, 60px);
-      grid-template-rows: repeat(3, 60px);
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    @media (max-width: 768px) {
-      .controls {
-        display: grid;
-      }
+      display: grid;
+      grid-template-columns: repeat(3, 70px);
+      grid-template-rows: repeat(2, 70px);
+      gap: 15px;
+      padding: 20px;
+      margin-bottom: 20px;
     }
 
     .btn {
-      background: rgba(0, 255, 156, 0.1);
-      border: 2px solid var(--primary);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(0, 255, 156, 0.3);
       color: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
-      border-radius: 10px;
+      font-size: 28px;
+      border-radius: 15px;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
+      transition: all 0.1s ease;
+      backdrop-filter: blur(5px);
     }
 
     .btn:active {
       background: var(--primary);
       color: var(--bg);
+      transform: scale(0.95);
+      box-shadow: 0 0 20px var(--primary);
     }
 
     .btn-stealth {
       grid-column: 1 / span 3;
-      margin-top: 10px;
+      height: 50px;
       font-size: 14px;
-      height: 40px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border-color: var(--accent);
+      color: var(--accent);
     }
 
-    .scanlines::after {
-      content: "";
+    .btn-stealth:active {
+      background: var(--accent);
+      box-shadow: 0 0 20px var(--accent);
+    }
+
+    @media (min-width: 769px) {
+      .controls {
+        display: none;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+      }
+    }
+
+    #overlay {
       position: absolute;
       inset: 0;
-      background: repeating-linear-gradient(to bottom,
-          rgba(255, 255, 255, 0.03),
-          rgba(255, 255, 255, 0.03) 1px,
-          transparent 1px,
-          transparent 3px);
-      pointer-events: none;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      cursor: pointer;
+      backdrop-filter: blur(15px);
+    }
+
+    .glitch-text {
+      font-size: 28px;
+      color: var(--primary);
+      text-shadow: 2px 0 var(--accent), -2px 0 #00ffff;
+      animation: glitch 2s infinite;
+    }
+
+    @keyframes glitch {
+      0% {
+        transform: translate(0);
+      }
+
+      20% {
+        transform: translate(-2px, 2px);
+      }
+
+      40% {
+        transform: translate(-2px, -2px);
+      }
+
+      60% {
+        transform: translate(2px, 2px);
+      }
+
+      80% {
+        transform: translate(2px, -2px);
+      }
+
+      100% {
+        transform: translate(0);
+      }
+    }
+
+    .stealth-bar-container {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      margin-top: 5px;
+      overflow: hidden;
+    }
+
+    #stealth-fill {
+      width: 100%;
+      height: 100%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      transition: width 0.1s linear;
     }
   </style>
 </head>
 
 <body>
-  <h1>MALWARE NETWORK</h1>
   <div id="wrap" class="scanlines">
-    <div id="overlay"
-      style="position:absolute; inset:0; background:rgba(0,0,0,0.8); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; cursor:pointer;">
-      <div style="font-size: 24px; color: var(--primary); text-shadow: 0 0 10px var(--primary);">INITIALIZING LINK...
+    <h1>Malware Network</h1>
+
+    <div id="overlay">
+      <div class="glitch-text">SYSTEM OFFLINE</div>
+      <div style="font-size: 14px; margin-top:20px; color:#fff; letter-spacing: 2px;">[ TAP TO INJECT PAYLOAD ]</div>
+      <div style="font-size: 10px; margin-top:40px; color:#555; text-align: center; line-height: 1.5;">
+        COLLECT DATA & ZERO-DAYS<br> REACH THE GOLDEN NODE<br> AVOID DEFENSIVE FIREWALLS
       </div>
-      <div style="font-size: 14px; margin-top:10px; color:#888;">[ TAP TO ESTABLISH CONNECTION ]</div>
     </div>
+
+    <div class="game-container">
+      <div id="canvas-host"></div>
+
+      <div class="ui-panel">
+        <div class="stat">
+          <span>DATA EXFIL</span>
+          <span id="ui-score" class="stat-val">0000</span>
+        </div>
+        <div class="stat" style="align-items: center;">
+          <span>STEALTH CHARGES</span>
+          <span id="ui-zeros" class="stat-val">0</span>
+        </div>
+        <div class="stat" style="align-items: flex-end;">
+          <span>NODE LINK</span>
+          <span id="ui-level" class="stat-val">LVL 01</span>
+        </div>
+      </div>
+      <div class="stealth-bar-container">
+        <div id="stealth-fill"></div>
+      </div>
+    </div>
+
     <div class="controls" id="mob-ctrl">
-      <div></div>
-      <div class="btn" id="btn-up">▲</div>
-      <div></div>
       <div class="btn" id="btn-left">◀</div>
-      <div class="btn" id="btn-down">▼</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="btn" id="btn-up" style="height: 70px;">▲</div>
+        <div class="btn" id="btn-down" style="height: 70px;">▼</div>
+      </div>
       <div class="btn" id="btn-right">▶</div>
-      <div class="btn btn-stealth" id="btn-stealth">ACTIVATE STEALTH (ZERO-DAY)</div>
+      <div class="btn btn-stealth" id="btn-stealth">ACTIVATE STEALTH</div>
     </div>
   </div>
 
@@ -164,7 +300,8 @@
         [440, 554, 659, 880].forEach((f, i) => {
           setTimeout(() => this.play(f, 'sine', 0.4, 0.1), i * 150);
         });
-      }
+      },
+      powerup() { this.play(1200, 'sine', 0.2, 0.1); }
     };
 
     /* ================= HAPTICS ================= */
@@ -174,69 +311,108 @@
 
     /* ================= CONSTANTS ================= */
     const UP = 1, LEFT = 2, DOWN = 3, RIGHT = 4;
-    // Map keys to actions. Space (32) is Stealth. R (82) is Restart.
     const KEY = { 37: LEFT, 38: UP, 39: RIGHT, 40: DOWN, 32: 'STEALTH', 82: 'RESET' };
-    const FPS = 30; // Smooth loop
+    const FPS = 30;
+    const SIZE = 32;
+
+    /* ================= UTILS ================= */
+    let shake = 0;
+    const particles = [];
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x; this.y = y;
+        this.vx = (Math.random() - 0.5) * 10;
+        this.vy = (Math.random() - 0.5) * 10;
+        this.alpha = 1;
+        this.color = color;
+      }
+      update() {
+        this.x += this.vx; this.y += this.vy;
+        this.alpha -= 0.05;
+      }
+      draw(ctx) {
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, 4, 4);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function createExplosion(x, y, color, count = 10) {
+      for (let i = 0; i < count; i++) particles.push(new Particle(x, y, color));
+    }
 
     /* ================= MAP TILES ================= */
-    const WALL = 0, DATA = 1, EMPTY = 2, ZERO = 3, GOAL = 4;
-
-    /* ================= NETWORK MAP ================= */
-    // New layout: Larger, multiple paths to goal (Top-Right)
-    // 0 = Wall, 1 = Data, S = Start (Empty), Z = Zero-Day (stealth charge)
-    const MAP = [
-      "000000000000000000000000000000",
-      "0S1110001111111000111111111110",
-      "010010001000001000100000100010",
-      "010011111000001111100000100010",
-      "010000001000000000100000111110",
-      "011111111111111111111111100010", // Central Highway
-      "000000000000100000000000000010",
-      "011111110000100000111111111110",
-      "010000010000100000100000000000",
-      "010000011111111111100000000000",
-      "010000000000000000100000000000",
-      "011111111111111111111111000000",
-      "000000000000100000000001000000", // Bottom path
-      "011110000000100000011111111110",
-      "010010000000100000010000000010",
-      "010011111111111111110000000010",
-      "000000000000000000000000000000"
-    ].map(r => r.split('').map(c => {
-      if (c === '0') return WALL;
-      if (c === '1') return DATA;
-      if (c === 'S') return EMPTY;
-      return EMPTY;
-    }));
-
-    // Goal at Top Right (approx)
-    MAP[1][28] = GOAL;
-    // Extra Zero-Day placements
-    MAP[8][1] = ZERO;
-    MAP[15][10] = ZERO;
+    const WALL = 0, DATA = 1, EMPTY = 2, ZERO = 3, GOAL = 4, POWERUP = 5;
 
     /* ================= ENGINE ================= */
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    const SIZE = 30;
-    canvas.width = MAP[0].length * SIZE;
-    canvas.height = MAP.length * SIZE + 30;
-    document.getElementById('wrap').appendChild(canvas);
+    document.getElementById('canvas-host').appendChild(canvas);
+
+    /* ================= LEVELS ================= */
+    const LEVELS = [
+      [
+        "0000000000000000000000000",
+        "0S111000111111100011111G0",
+        "0100100010000010001000000",
+        "0111111111111Z11111111110",
+        "0100100010000010001000000",
+        "0111111111111P11111111110",
+        "0000000000000000000000000"
+      ],
+      [
+        "0000000000000000000000000",
+        "0S11100011111P100011111G0",
+        "0101111100000000001111110",
+        "0111000111Z11100011111110",
+        "0001000001111100000000110",
+        "0111111111111111111111P10",
+        "0000000000000000000000000"
+      ],
+      [
+        "0000000000000000000000000",
+        "0S1Z1000111011100011111G0",
+        "0101001010101010101000010",
+        "01111111111P1111111111110",
+        "0101001010101010101000010",
+        "011Z100011101110001111P10",
+        "0000000000000000000000000"
+      ]
+    ];
+
+    let currentLevel = 0;
+    function loadLevel(idx) {
+      const l = LEVELS[idx % LEVELS.length];
+      const map = l.map(r => r.split('').map(c => {
+        if (c === '0') return WALL;
+        if (c === '1') return DATA;
+        if (c === 'S') return EMPTY;
+        if (c === 'Z') return ZERO;
+        if (c === 'P') return POWERUP;
+        if (c === 'G') return GOAL;
+        return EMPTY;
+      }));
+      canvas.width = map[0].length * SIZE;
+      canvas.height = map.length * SIZE;
+      return map;
+    }
 
     /* ================= NETWORK ================= */
     const net = {
-      map: JSON.parse(JSON.stringify(MAP)),
+      map: [],
+      init() { this.map = loadLevel(currentLevel); },
       draw() {
         for (let y = 0; y < this.map.length; y++) {
           for (let x = 0; x < this.map[0].length; x++) {
             let t = this.map[y][x];
             if (t === WALL) {
               ctx.strokeStyle = "#003344";
-              ctx.strokeRect(x * SIZE, y * SIZE, SIZE, SIZE);
+              ctx.strokeRect(x * SIZE + 2, y * SIZE + 2, SIZE - 4, SIZE - 4);
             }
             if (t === DATA) {
               ctx.fillStyle = "#00ffcc";
-              ctx.fillRect(x * SIZE + 10, y * SIZE + 10, 10, 10);
+              ctx.fillRect(x * SIZE + SIZE / 2 - 2, y * SIZE + SIZE / 2 - 2, 4, 4);
             }
             if (t === ZERO) {
               ctx.fillStyle = "#ff00ff";
@@ -244,17 +420,26 @@
               ctx.arc(x * SIZE + SIZE / 2, y * SIZE + SIZE / 2, 6, 0, Math.PI * 2);
               ctx.fill();
             }
+            if (t === POWERUP) {
+              ctx.fillStyle = "#00ffff";
+              ctx.fillRect(x * SIZE + SIZE / 2 - 6, y * SIZE + SIZE / 2 - 6, 12, 12);
+              ctx.strokeStyle = "#fff";
+              ctx.strokeRect(x * SIZE + SIZE / 2 - 6, y * SIZE + SIZE / 2 - 6, 12, 12);
+            }
             if (t === GOAL) {
               ctx.fillStyle = "#ffd700";
-              ctx.fillRect(x * SIZE + 6, y * SIZE + 6, 18, 18);
+              ctx.shadowColor = "#ffd700";
+              ctx.shadowBlur = 15;
+              ctx.fillRect(x * SIZE + 4, y * SIZE + 4, SIZE - 8, SIZE - 8);
+              ctx.shadowBlur = 0;
             }
           }
         }
       },
-      wall(x, y) { return this.map[y]?.[x] === WALL; },
+      wall(x, y) { return this.map[y]?.[x] === WALL || this.map[y]?.[x] === undefined; },
       eat(x, y) {
         let t = this.map[y][x];
-        if (t === DATA || t === ZERO) this.map[y][x] = EMPTY;
+        if (t === DATA || t === ZERO || t === POWERUP) this.map[y][x] = EMPTY;
         return t;
       }
     };
@@ -264,15 +449,20 @@
       x: 1, y: 1, dir: RIGHT,
       stealth: false, stTick: 0,
       score: 0, zeros: 3,
-      trail: [],
-      // Move Delay Logic
+      boost: 0, trail: [],
       moveTick: 0,
-      moveDelay: 3, // Move every 3 frames
+      moveDelay: 3,
 
+      reset() {
+        this.x = 1; this.y = 1; this.dir = RIGHT;
+        this.stealth = false; this.boost = 0;
+      },
       move(t) {
         this.moveTick++;
-        if (this.moveTick < this.moveDelay) return;
+        let currentDelay = this.boost > 0 ? 1 : this.moveDelay;
+        if (this.moveTick < currentDelay) return;
         this.moveTick = 0;
+        if (this.boost > 0) this.boost--;
 
         let nx = this.x, ny = this.y;
         if (this.dir === LEFT) nx--;
@@ -281,246 +471,224 @@
         if (this.dir === DOWN) ny++;
 
         if (!net.wall(nx, ny)) {
-          this.x = nx;
-          this.y = ny;
+          this.x = nx; this.y = ny;
         }
 
         let e = net.eat(this.x, this.y);
         if (e === DATA) {
           this.score += 10;
           sound.data();
-          haptic(50);
+          createExplosion(this.x * SIZE + SIZE / 2, this.y * SIZE + SIZE / 2, "#00ffcc", 5);
         }
         if (e === ZERO) {
           this.zeros++;
           sound.zero();
-          haptic([50, 50, 50]);
+          createExplosion(this.x * SIZE + SIZE / 2, this.y * SIZE + SIZE / 2, "#ff00ff", 15);
+        }
+        if (e === POWERUP) {
+          this.boost = 60; // 2 seconds of speed
+          sound.powerup();
+          createExplosion(this.x * SIZE + SIZE / 2, this.y * SIZE + SIZE / 2, "#00ffff", 15);
         }
         if (e === GOAL) {
-          gameOver = true;
           sound.win();
-          haptic([100, 50, 100, 50, 300]);
-          drawScoreboard(true);
+          currentLevel++;
+          if (currentLevel >= LEVELS.length) {
+            gameOver = true;
+            drawScoreboard(true);
+          } else {
+            this.reset();
+            net.init();
+            initDefenses();
+          }
         }
 
-        // record trail if stealth
-        if (this.stealth) this.trail.push({ x: this.x, y: this.y, alpha: 0.6 });
+        if (this.stealth) {
+          this.trail.push({ x: this.x, y: this.y, alpha: 0.6 });
+          if (t - this.stTick > 150) this.stealth = false;
+        }
         this.trail.forEach(p => p.alpha -= 0.02);
         this.trail = this.trail.filter(p => p.alpha > 0);
-
-        // Stealth duration ~6 seconds (200 ticks at 30fps)
-        if (this.stealth && t - this.stTick > 200) this.stealth = false;
       },
       draw() {
-        // Draw stealth trail
         this.trail.forEach(p => {
           ctx.fillStyle = `rgba(255,0,64,${p.alpha})`;
-          ctx.fillRect(p.x * SIZE + 8, p.y * SIZE + 8, 14, 14);
+          ctx.fillRect(p.x * SIZE + 8, p.y * SIZE + 8, SIZE - 16, SIZE - 16);
         });
 
         ctx.save();
-        ctx.globalAlpha = this.stealth ? 0.4 : 1;
+        ctx.translate(this.x * SIZE + SIZE / 2, this.y * SIZE + SIZE / 2);
+        if (this.boost > 0) {
+          ctx.strokeStyle = "#00ffff";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, 15 + Math.sin(tick * 0.5) * 5, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = this.stealth ? 0.3 : 1;
         ctx.shadowColor = "#ff0040";
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 15;
         ctx.fillStyle = "#ff0040";
         ctx.beginPath();
-        ctx.arc(this.x * SIZE + SIZE / 2, this.y * SIZE + SIZE / 2, 12, 0, Math.PI * 2);
+        ctx.arc(0, 0, 10, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
     };
 
     /* ================= DEFENSE ================= */
-    function Defense(type, x, y) {
-      this.type = type;
-      this.x = x; this.y = y;
-      this.pulse = 0;
-      this.moveTick = 0;
-      this.moveDelay = 5; // Slower than payload
+    class Defense {
+      constructor(type, x, y, speed = 5) {
+        this.type = type; this.x = x; this.y = y;
+        this.spawnX = x; this.spawnY = y;
+        this.moveTick = 0; this.moveDelay = speed;
+        this.pulse = Math.random() * 10;
+        this.dir = Math.floor(Math.random() * 4) + 1;
+      }
+      move() {
+        if (payload.stealth) return;
+        this.moveTick++;
+        if (this.moveTick < this.moveDelay) return;
+        this.moveTick = 0;
+
+        if (this.type === "FOLLOW") {
+          let dx = payload.x - this.x, dy = payload.y - this.y;
+          if (Math.abs(dx) > Math.abs(dy)) {
+            if (dx > 0 && !net.wall(this.x + 1, this.y)) this.x++;
+            else if (dx < 0 && !net.wall(this.x - 1, this.y)) this.x--;
+            else if (dy > 0 && !net.wall(this.x, this.y + 1)) this.y++;
+            else if (dy < 0 && !net.wall(this.x, this.y - 1)) this.y--;
+          } else {
+            if (dy > 0 && !net.wall(this.x, this.y + 1)) this.y++;
+            else if (dy < 0 && !net.wall(this.x, this.y - 1)) this.y--;
+            else if (dx > 0 && !net.wall(this.x + 1, this.y)) this.x++;
+            else if (dx < 0 && !net.wall(this.x - 1, this.y)) this.x--;
+          }
+        } else {
+          // Random/Patrol
+          let nx = this.x, ny = this.y;
+          if (this.dir === UP) ny--; if (this.dir === DOWN) ny++;
+          if (this.dir === LEFT) nx--; if (this.dir === RIGHT) nx++;
+          if (net.wall(nx, ny)) this.dir = Math.floor(Math.random() * 4) + 1;
+          else { this.x = nx; this.y = ny; }
+        }
+        this.pulse += 0.2;
+      }
+      draw() {
+        ctx.save();
+        ctx.translate(this.x * SIZE + SIZE / 2, this.y * SIZE + SIZE / 2);
+        ctx.rotate(this.pulse * 0.5);
+        const colors = { FOLLOW: "#ff3c3c", PATROL: "#00f5ff", SCOUT: "#aa00ff" };
+        ctx.fillStyle = colors[this.type];
+        let s = 10 + Math.sin(this.pulse) * 3;
+        ctx.fillRect(-s, -s, s * 2, s * 2);
+        ctx.strokeStyle = "#fff";
+        ctx.strokeRect(-s, -s, s * 2, s * 2);
+        ctx.restore();
+      }
     }
 
-    Defense.prototype.move = function () {
-      this.moveTick++;
-      if (this.moveTick < this.moveDelay) return;
-      this.moveTick = 0;
+    let defenses = [];
+    function initDefenses() {
+      defenses = [
+        new Defense("FOLLOW", 10, 5, 6),
+        new Defense("PATROL", 15, 3, 4),
+        new Defense("SCOUT", 5, 2, 5)
+      ];
+      if (currentLevel > 0) defenses.push(new Defense("FOLLOW", 20, 5, 5));
+    }
 
-      if (payload.stealth) return; // detectors paused in stealth
+    /* ================= UI UPDATES ================= */
+    function updateUI() {
+      document.getElementById('ui-score').innerText = payload.score.toString().padStart(4, '0');
+      document.getElementById('ui-zeros').innerText = payload.zeros;
+      document.getElementById('ui-level').innerText = `LVL ${(currentLevel + 1).toString().padStart(2, '0')}`;
 
-      // Discrete grid movement (fixes wall clipping)
-      let dx = payload.x - this.x;
-      let dy = payload.y - this.y;
-
-      // Attempt to move closer on dominant axis first
-      if (Math.abs(dx) > Math.abs(dy)) {
-        // Horizontal first
-        if (dx > 0 && !net.wall(this.x + 1, this.y)) this.x++;
-        else if (dx < 0 && !net.wall(this.x - 1, this.y)) this.x--;
-        // If blocked, try vertical
-        else if (dy > 0 && !net.wall(this.x, this.y + 1)) this.y++;
-        else if (dy < 0 && !net.wall(this.x, this.y - 1)) this.y--;
-      } else {
-        // Vertical first
-        if (dy > 0 && !net.wall(this.x, this.y + 1)) this.y++;
-        else if (dy < 0 && !net.wall(this.x, this.y - 1)) this.y--;
-        // If blocked, try horizontal
-        else if (dx > 0 && !net.wall(this.x + 1, this.y)) this.x++;
-        else if (dx < 0 && !net.wall(this.x - 1, this.y)) this.x--;
-      }
-
-      this.pulse += 0.1;
-    };
-
-    Defense.prototype.draw = function () {
-      ctx.fillStyle = {
-        FIREWALL: "#00f5ff",
-        IDS: "#ff3c3c",
-        AV: "#ffaa00",
-        SOC: "#aa00ff"
-      }[this.type];
-      ctx.save();
-      ctx.translate(this.x * SIZE + SIZE / 2, this.y * SIZE + SIZE / 2);
-      let scale = 1 + 0.2 * Math.sin(this.pulse); // pulsing
-      ctx.scale(scale, scale);
-      ctx.fillRect(-12, -12, 24, 24);
-      // mouth line
-      ctx.strokeStyle = "#000";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(-8, 0);
-      ctx.lineTo(8, 0);
-      ctx.stroke();
-      ctx.restore();
-    };
-
-    const defenses = [
-      new Defense("IDS", 12, 5),   // Top mid
-      new Defense("AV", 20, 10),   // Right side
-      new Defense("SOC", 5, 12),   // Bottom left
-      new Defense("FIREWALL", 15, 8) // Central
-    ];
+      const stealthPct = payload.stealth ? Math.max(0, 100 - (tick - payload.stTick) / 1.5) : 100;
+      document.getElementById('stealth-fill').style.width = stealthPct + "%";
+      document.getElementById('stealth-fill').style.background = payload.stealth ? "var(--primary)" : "var(--accent)";
+    }
 
     /* ================= INPUT ================= */
-    document.addEventListener('keydown', e => {
-      // Prevent browser from scrolling with arrows/space
-      if ([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
-        e.preventDefault();
-      }
-
-      if (KEY[e.keyCode] === payload.dir) return;
-
-      // BUG FIX: Added !payload.stealth check to prevent rapid consumption
-      // of all charges by holding down the key or pressing repeatedly while active.
-      if (KEY[e.keyCode] === 'STEALTH') {
+    const handleAction = (act) => {
+      if (gameOver) return;
+      if (act === 'STEALTH') {
         if (payload.zeros > 0 && !payload.stealth) {
-          payload.stealth = true;
-          payload.stTick = tick;
-          payload.zeros--;
-          sound.stealth();
-          haptic(100);
+          payload.stealth = true; payload.stTick = tick;
+          payload.zeros--; sound.stealth(); haptic(100);
         }
-      } else if (KEY[e.keyCode] === 'RESET') {
-        location.reload();
-      } else if (KEY[e.keyCode]) {
-        payload.dir = KEY[e.keyCode];
-      }
+      } else if (typeof act === 'number') payload.dir = act;
+    };
+
+    document.addEventListener('keydown', e => {
+      if ([32, 37, 38, 39, 40].includes(e.keyCode)) e.preventDefault();
+      if (KEY[e.keyCode] === 'RESET') location.reload();
+      handleAction(KEY[e.keyCode]);
     });
 
-    /* ================= MOBILE CONTROLS ================= */
-    const setDir = (d) => { if (!gameOver) payload.dir = d; };
-    document.getElementById('btn-up').ontouchstart = (e) => { e.preventDefault(); setDir(UP); };
-    document.getElementById('btn-down').ontouchstart = (e) => { e.preventDefault(); setDir(DOWN); };
-    document.getElementById('btn-left').ontouchstart = (e) => { e.preventDefault(); setDir(LEFT); };
-    document.getElementById('btn-right').ontouchstart = (e) => { e.preventDefault(); setDir(RIGHT); };
-    document.getElementById('btn-stealth').ontouchstart = (e) => {
-      e.preventDefault();
-      if (payload.zeros > 0 && !payload.stealth) {
-        payload.stealth = true;
-        payload.stTick = tick;
-        payload.zeros--;
-        sound.stealth();
-        haptic(100);
-      }
-    };
+    ['up', 'down', 'left', 'right', 'stealth'].forEach(id => {
+      const el = document.getElementById('btn-' + id);
+      const action = id === 'stealth' ? 'STEALTH' : { up: UP, down: DOWN, left: LEFT, right: RIGHT }[id];
+      el.onpointerdown = (e) => { e.preventDefault(); handleAction(action); };
+    });
 
-    // Overlay to start Audio/Game
     document.getElementById('overlay').onclick = function () {
-      audioCtx.resume();
       this.style.display = 'none';
       gameStarted = true;
-      startTime = Date.now();
-      if (navigator.vibrate) navigator.vibrate(10);
+      audioCtx.resume();
+      net.init();
+      initDefenses();
     };
 
     /* ================= LOOP ================= */
-    /* ================= GAME STATE ================= */
-    let tick = 0;
-    let startTime = Date.now();
-    let gameOver = false;
-    let gameStarted = false;
+    let tick = 0, gameStarted = false, gameOver = false;
 
     function drawScoreboard(win) {
-      // Semi-transparent background
-      ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-      ctx.fillRect(50, 50, canvas.width - 100, canvas.height - 100);
-
-      // Border
-      ctx.strokeStyle = win ? "#00ff9c" : "#ff0040";
-      ctx.lineWidth = 4;
-      ctx.strokeRect(50, 50, canvas.width - 100, canvas.height - 100);
-
-      // Title
-      ctx.fillStyle = win ? "#00ff9c" : "#ff0040";
-      ctx.font = "30px 'JetBrains Mono'";
+      ctx.fillStyle = "rgba(0,0,0,0.9)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = win ? "var(--primary)" : "var(--accent)";
+      ctx.font = "24px 'JetBrains Mono'";
       ctx.textAlign = "center";
-      ctx.fillText(win ? "MISSION ACCOMPLISHED" : "CONNECTION TERMINATED", canvas.width / 2, 120);
-
-      // Stats
-      ctx.font = "20px 'JetBrains Mono'";
+      ctx.fillText(win ? "INFILTRATION COMPLETE" : "LINK SEVERED", canvas.width / 2, canvas.height / 2 - 20);
+      ctx.font = "14px 'JetBrains Mono'";
       ctx.fillStyle = "#fff";
-
-      let timeTaken = ((Date.now() - startTime) / 1000).toFixed(2);
-      ctx.fillText(`DATA EXFILTRATED: ${payload.score}`, canvas.width / 2, 180);
-      ctx.fillText(`TIME ELAPSED: ${timeTaken}s`, canvas.width / 2, 220);
-
-      // Restart Hint
-      ctx.fillStyle = "#888";
-      ctx.font = "16px 'JetBrains Mono'";
-      ctx.fillText("PRESS 'R' OR TAP HERE TO RESTART", canvas.width / 2, 300);
-      // Reset alignment
-      ctx.textAlign = "start";
+      ctx.fillText(`FINAL SCORE: ${payload.score}`, canvas.width / 2, canvas.height / 2 + 20);
+      ctx.fillText("TAP SCREEN TO REBOOT", canvas.width / 2, canvas.height / 2 + 60);
     }
 
-    // Mobile Restart
-    canvas.onclick = () => { if (gameOver) location.reload(); };
+    canvas.onpointerdown = () => { if (gameOver) location.reload(); };
 
-    /* ================= LOOP ================= */
     setInterval(() => {
       if (!gameStarted || gameOver) return;
-
       tick++;
+
+      ctx.save();
+      if (shake > 0) {
+        ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+        shake *= 0.8;
+      }
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       net.draw();
       payload.move(tick);
-
-      if (gameOver) return; // Stop if game ended inside move()
-
       payload.draw();
-      defenses.forEach(d => {
-        d.move();
-        d.draw();
 
-        // BUG FIX: Disabled collision check during stealth
-        // Malware is essentially "invisible" or "ethereal"
+      defenses.forEach(d => {
+        d.move(); d.draw();
         if (!payload.stealth && d.x === payload.x && d.y === payload.y) {
-          gameOver = true;
-          sound.crash();
-          haptic([200, 100, 200]);
-          drawScoreboard(false);
+          shake = 20; sound.crash(); haptic([200, 100]);
+          gameOver = true; drawScoreboard(false);
         }
       });
-      // scoreboard
-      ctx.fillStyle = "#00ff9c";
-      ctx.fillText(`DATA:${payload.score}  ZERO-DAYS:${payload.zeros}`, 10, canvas.height - 10);
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update();
+        particles[i].draw(ctx);
+        if (particles[i].alpha <= 0) particles.splice(i, 1);
+      }
+
+      ctx.restore();
+      updateUI();
     }, 1000 / FPS);
   </script>
 </body>
