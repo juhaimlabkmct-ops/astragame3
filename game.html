@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MALWARE NETWORK :: RED TEAM SIM</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #00ff9c;
+      --accent: #ff0040;
+      --bg: #05070c;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--primary);
+      font-family: 'JetBrains Mono', monospace;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    h1 {
+      color: var(--accent);
+      text-align: center;
+      margin: 10px 0;
+      font-size: 1.5rem;
+      text-shadow: 0 0 10px var(--accent);
+    }
+
+    #wrap {
+      width: 100%;
+      height: calc(100vh - 50px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      max-width: 95%;
+      max-height: 70vh;
+      background: #000;
+      box-shadow: 0 0 20px var(--primary);
+      border: 1px solid #003344;
+    }
+
+    .controls {
+      display: none;
+      grid-template-columns: repeat(3, 60px);
+      grid-template-rows: repeat(3, 60px);
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .controls {
+        display: grid;
+      }
+    }
+
+    .btn {
+      background: rgba(0, 255, 156, 0.1);
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      border-radius: 10px;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn:active {
+      background: var(--primary);
+      color: var(--bg);
+    }
+
+    .btn-stealth {
+      grid-column: 1 / span 3;
+      margin-top: 10px;
+      font-size: 14px;
+      height: 40px;
+    }
+
+    .scanlines::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(to bottom,
+          rgba(255, 255, 255, 0.03),
+          rgba(255, 255, 255, 0.03) 1px,
+          transparent 1px,
+          transparent 3px);
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>MALWARE NETWORK</h1>
+  <div id="wrap" class="scanlines">
+    <div id="overlay"
+      style="position:absolute; inset:0; background:rgba(0,0,0,0.8); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; cursor:pointer;">
+      <div style="font-size: 24px; color: var(--primary); text-shadow: 0 0 10px var(--primary);">INITIALIZING LINK...
+      </div>
+      <div style="font-size: 14px; margin-top:10px; color:#888;">[ TAP TO ESTABLISH CONNECTION ]</div>
+    </div>
+    <div class="controls" id="mob-ctrl">
+      <div></div>
+      <div class="btn" id="btn-up">▲</div>
+      <div></div>
+      <div class="btn" id="btn-left">◀</div>
+      <div class="btn" id="btn-down">▼</div>
+      <div class="btn" id="btn-right">▶</div>
+      <div class="btn btn-stealth" id="btn-stealth">ACTIVATE STEALTH (ZERO-DAY)</div>
+    </div>
+  </div>
+
+  <script>
+    /* ================= AUDIO ENGINE ================= */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const sound = {
+      play(freq, type, duration, vol = 0.1) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      },
+      data() { this.play(880, 'square', 0.1, 0.05); },
+      zero() { this.play(440, 'sine', 0.5, 0.1); this.play(660, 'sine', 0.5, 0.1); },
+      stealth() {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+      },
+      crash() {
+        for (let i = 0; i < 5; i++) this.play(100 + Math.random() * 200, 'sawtooth', 0.5, 0.1);
+      },
+      win() {
+        [440, 554, 659, 880].forEach((f, i) => {
+          setTimeout(() => this.play(f, 'sine', 0.4, 0.1), i * 150);
+        });
+      }
+    };
+
+    /* ================= HAPTICS ================= */
+    const haptic = (ms) => {
+      if (navigator.vibrate) navigator.vibrate(ms);
+    };
+
+    /* ================= CONSTANTS ================= */
+    const UP = 1, LEFT = 2, DOWN = 3, RIGHT = 4;
+    // Map keys to actions. Space (32) is Stealth. R (82) is Restart.
+    const KEY = { 37: LEFT, 38: UP, 39: RIGHT, 40: DOWN, 32: 'STEALTH', 82: 'RESET' };
+    const FPS = 30; // Smooth loop
+
+    /* ================= MAP TILES ================= */
+    const WALL = 0, DATA = 1, EMPTY = 2, ZERO = 3, GOAL = 4;
+
+    /* ================= NETWORK MAP ================= */
+    // New layout: Larger, multiple paths to goal (Top-Right)
+    // 0 = Wall, 1 = Data, S = Start (Empty), Z = Zero-Day (stealth charge)
+    const MAP = [
+      "000000000000000000000000000000",
+      "0S1110001111111000111111111110",
+      "010010001000001000100000100010",
+      "010011111000001111100000100010",
+      "010000001000000000100000111110",
+      "011111111111111111111111100010", // Central Highway
+      "000000000000100000000000000010",
+      "011111110000100000111111111110",
+      "010000010000100000100000000000",
+      "010000011111111111100000000000",
+      "010000000000000000100000000000",
+      "011111111111111111111111000000",
+      "000000000000100000000001000000", // Bottom path
+      "011110000000100000011111111110",
+      "010010000000100000010000000010",
+      "010011111111111111110000000010",
+      "000000000000000000000000000000"
+    ].map(r => r.split('').map(c => {
+      if (c === '0') return WALL;
+      if (c === '1') return DATA;
+      if (c === 'S') return EMPTY;
+      return EMPTY;
+    }));
+
+    // Goal at Top Right (approx)
+    MAP[1][28] = GOAL;
+    // Extra Zero-Day placements
+    MAP[8][1] = ZERO;
+    MAP[15][10] = ZERO;
+
+    /* ================= ENGINE ================= */
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const SIZE = 30;
+    canvas.width = MAP[0].length * SIZE;
+    canvas.height = MAP.length * SIZE + 30;
+    document.getElementById('wrap').appendChild(canvas);
+
+    /* ================= NETWORK ================= */
+    const net = {
+      map: JSON.parse(JSON.stringify(MAP)),
+      draw() {
+        for (let y = 0; y < this.map.length; y++) {
+          for (let x = 0; x < this.map[0].length; x++) {
+            let t = this.map[y][x];
+            if (t === WALL) {
+              ctx.strokeStyle = "#003344";
+              ctx.strokeRect(x * SIZE, y * SIZE, SIZE, SIZE);
+            }
+            if (t === DATA) {
+              ctx.fillStyle = "#00ffcc";
+              ctx.fillRect(x * SIZE + 10, y * SIZE + 10, 10, 10);
+            }
+            if (t === ZERO) {
+              ctx.fillStyle = "#ff00ff";
+              ctx.beginPath();
+              ctx.arc(x * SIZE + SIZE / 2, y * SIZE + SIZE / 2, 6, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            if (t === GOAL) {
+              ctx.fillStyle = "#ffd700";
+              ctx.fillRect(x * SIZE + 6, y * SIZE + 6, 18, 18);
+            }
+          }
+        }
+      },
+      wall(x, y) { return this.map[y]?.[x] === WALL; },
+      eat(x, y) {
+        let t = this.map[y][x];
+        if (t === DATA || t === ZERO) this.map[y][x] = EMPTY;
+        return t;
+      }
+    };
+
+    /* ================= PAYLOAD ================= */
+    const payload = {
+      x: 1, y: 1, dir: RIGHT,
+      stealth: false, stTick: 0,
+      score: 0, zeros: 3,
+      trail: [],
+      // Move Delay Logic
+      moveTick: 0,
+      moveDelay: 3, // Move every 3 frames
+
+      move(t) {
+        this.moveTick++;
+        if (this.moveTick < this.moveDelay) return;
+        this.moveTick = 0;
+
+        let nx = this.x, ny = this.y;
+        if (this.dir === LEFT) nx--;
+        if (this.dir === RIGHT) nx++;
+        if (this.dir === UP) ny--;
+        if (this.dir === DOWN) ny++;
+
+        if (!net.wall(nx, ny)) {
+          this.x = nx;
+          this.y = ny;
+        }
+
+        let e = net.eat(this.x, this.y);
+        if (e === DATA) {
+          this.score += 10;
+          sound.data();
+          haptic(50);
+        }
+        if (e === ZERO) {
+          this.zeros++;
+          sound.zero();
+          haptic([50, 50, 50]);
+        }
+        if (e === GOAL) {
+          gameOver = true;
+          sound.win();
+          haptic([100, 50, 100, 50, 300]);
+          drawScoreboard(true);
+        }
+
+        // record trail if stealth
+        if (this.stealth) this.trail.push({ x: this.x, y: this.y, alpha: 0.6 });
+        this.trail.forEach(p => p.alpha -= 0.02);
+        this.trail = this.trail.filter(p => p.alpha > 0);
+
+        // Stealth duration ~6 seconds (200 ticks at 30fps)
+        if (this.stealth && t - this.stTick > 200) this.stealth = false;
+      },
+      draw() {
+        // Draw stealth trail
+        this.trail.forEach(p => {
+          ctx.fillStyle = `rgba(255,0,64,${p.alpha})`;
+          ctx.fillRect(p.x * SIZE + 8, p.y * SIZE + 8, 14, 14);
+        });
+
+        ctx.save();
+        ctx.globalAlpha = this.stealth ? 0.4 : 1;
+        ctx.shadowColor = "#ff0040";
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = "#ff0040";
+        ctx.beginPath();
+        ctx.arc(this.x * SIZE + SIZE / 2, this.y * SIZE + SIZE / 2, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    };
+
+    /* ================= DEFENSE ================= */
+    function Defense(type, x, y) {
+      this.type = type;
+      this.x = x; this.y = y;
+      this.pulse = 0;
+      this.moveTick = 0;
+      this.moveDelay = 5; // Slower than payload
+    }
+
+    Defense.prototype.move = function () {
+      this.moveTick++;
+      if (this.moveTick < this.moveDelay) return;
+      this.moveTick = 0;
+
+      if (payload.stealth) return; // detectors paused in stealth
+
+      // Discrete grid movement (fixes wall clipping)
+      let dx = payload.x - this.x;
+      let dy = payload.y - this.y;
+
+      // Attempt to move closer on dominant axis first
+      if (Math.abs(dx) > Math.abs(dy)) {
+        // Horizontal first
+        if (dx > 0 && !net.wall(this.x + 1, this.y)) this.x++;
+        else if (dx < 0 && !net.wall(this.x - 1, this.y)) this.x--;
+        // If blocked, try vertical
+        else if (dy > 0 && !net.wall(this.x, this.y + 1)) this.y++;
+        else if (dy < 0 && !net.wall(this.x, this.y - 1)) this.y--;
+      } else {
+        // Vertical first
+        if (dy > 0 && !net.wall(this.x, this.y + 1)) this.y++;
+        else if (dy < 0 && !net.wall(this.x, this.y - 1)) this.y--;
+        // If blocked, try horizontal
+        else if (dx > 0 && !net.wall(this.x + 1, this.y)) this.x++;
+        else if (dx < 0 && !net.wall(this.x - 1, this.y)) this.x--;
+      }
+
+      this.pulse += 0.1;
+    };
+
+    Defense.prototype.draw = function () {
+      ctx.fillStyle = {
+        FIREWALL: "#00f5ff",
+        IDS: "#ff3c3c",
+        AV: "#ffaa00",
+        SOC: "#aa00ff"
+      }[this.type];
+      ctx.save();
+      ctx.translate(this.x * SIZE + SIZE / 2, this.y * SIZE + SIZE / 2);
+      let scale = 1 + 0.2 * Math.sin(this.pulse); // pulsing
+      ctx.scale(scale, scale);
+      ctx.fillRect(-12, -12, 24, 24);
+      // mouth line
+      ctx.strokeStyle = "#000";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-8, 0);
+      ctx.lineTo(8, 0);
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    const defenses = [
+      new Defense("IDS", 12, 5),   // Top mid
+      new Defense("AV", 20, 10),   // Right side
+      new Defense("SOC", 5, 12),   // Bottom left
+      new Defense("FIREWALL", 15, 8) // Central
+    ];
+
+    /* ================= INPUT ================= */
+    document.addEventListener('keydown', e => {
+      // Prevent browser from scrolling with arrows/space
+      if ([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+        e.preventDefault();
+      }
+
+      if (KEY[e.keyCode] === payload.dir) return;
+
+      // BUG FIX: Added !payload.stealth check to prevent rapid consumption
+      // of all charges by holding down the key or pressing repeatedly while active.
+      if (KEY[e.keyCode] === 'STEALTH') {
+        if (payload.zeros > 0 && !payload.stealth) {
+          payload.stealth = true;
+          payload.stTick = tick;
+          payload.zeros--;
+          sound.stealth();
+          haptic(100);
+        }
+      } else if (KEY[e.keyCode] === 'RESET') {
+        location.reload();
+      } else if (KEY[e.keyCode]) {
+        payload.dir = KEY[e.keyCode];
+      }
+    });
+
+    /* ================= MOBILE CONTROLS ================= */
+    const setDir = (d) => { if (!gameOver) payload.dir = d; };
+    document.getElementById('btn-up').ontouchstart = (e) => { e.preventDefault(); setDir(UP); };
+    document.getElementById('btn-down').ontouchstart = (e) => { e.preventDefault(); setDir(DOWN); };
+    document.getElementById('btn-left').ontouchstart = (e) => { e.preventDefault(); setDir(LEFT); };
+    document.getElementById('btn-right').ontouchstart = (e) => { e.preventDefault(); setDir(RIGHT); };
+    document.getElementById('btn-stealth').ontouchstart = (e) => {
+      e.preventDefault();
+      if (payload.zeros > 0 && !payload.stealth) {
+        payload.stealth = true;
+        payload.stTick = tick;
+        payload.zeros--;
+        sound.stealth();
+        haptic(100);
+      }
+    };
+
+    // Overlay to start Audio/Game
+    document.getElementById('overlay').onclick = function () {
+      audioCtx.resume();
+      this.style.display = 'none';
+      gameStarted = true;
+      startTime = Date.now();
+      if (navigator.vibrate) navigator.vibrate(10);
+    };
+
+    /* ================= LOOP ================= */
+    /* ================= GAME STATE ================= */
+    let tick = 0;
+    let startTime = Date.now();
+    let gameOver = false;
+    let gameStarted = false;
+
+    function drawScoreboard(win) {
+      // Semi-transparent background
+      ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+      ctx.fillRect(50, 50, canvas.width - 100, canvas.height - 100);
+
+      // Border
+      ctx.strokeStyle = win ? "#00ff9c" : "#ff0040";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(50, 50, canvas.width - 100, canvas.height - 100);
+
+      // Title
+      ctx.fillStyle = win ? "#00ff9c" : "#ff0040";
+      ctx.font = "30px 'JetBrains Mono'";
+      ctx.textAlign = "center";
+      ctx.fillText(win ? "MISSION ACCOMPLISHED" : "CONNECTION TERMINATED", canvas.width / 2, 120);
+
+      // Stats
+      ctx.font = "20px 'JetBrains Mono'";
+      ctx.fillStyle = "#fff";
+
+      let timeTaken = ((Date.now() - startTime) / 1000).toFixed(2);
+      ctx.fillText(`DATA EXFILTRATED: ${payload.score}`, canvas.width / 2, 180);
+      ctx.fillText(`TIME ELAPSED: ${timeTaken}s`, canvas.width / 2, 220);
+
+      // Restart Hint
+      ctx.fillStyle = "#888";
+      ctx.font = "16px 'JetBrains Mono'";
+      ctx.fillText("PRESS 'R' OR TAP HERE TO RESTART", canvas.width / 2, 300);
+      // Reset alignment
+      ctx.textAlign = "start";
+    }
+
+    // Mobile Restart
+    canvas.onclick = () => { if (gameOver) location.reload(); };
+
+    /* ================= LOOP ================= */
+    setInterval(() => {
+      if (!gameStarted || gameOver) return;
+
+      tick++;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      net.draw();
+      payload.move(tick);
+
+      if (gameOver) return; // Stop if game ended inside move()
+
+      payload.draw();
+      defenses.forEach(d => {
+        d.move();
+        d.draw();
+
+        // BUG FIX: Disabled collision check during stealth
+        // Malware is essentially "invisible" or "ethereal"
+        if (!payload.stealth && d.x === payload.x && d.y === payload.y) {
+          gameOver = true;
+          sound.crash();
+          haptic([200, 100, 200]);
+          drawScoreboard(false);
+        }
+      });
+      // scoreboard
+      ctx.fillStyle = "#00ff9c";
+      ctx.fillText(`DATA:${payload.score}  ZERO-DAYS:${payload.zeros}`, 10, canvas.height - 10);
+    }, 1000 / FPS);
+  </script>
+</body>
+
+</html>
